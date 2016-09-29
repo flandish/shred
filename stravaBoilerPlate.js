@@ -6,10 +6,11 @@
   run at a different rate depending on the project. */
 
 //Name dependencies
-var express = require('express')//Node webframework for routing etc
-var app = express()
-var async = require("async")//For executing functions in a specific order
-var fs = require('fs') //file save
+var express = require('express');//Node webframework for routing etc
+var app = express();
+var request = require('superagent'); //Used for HTTP requests.
+var async = require("async");//For executing functions in a specific order
+var fs = require('fs'); //file save
 
 //Declare variables
 var runCount, runDist; //Variables for Strava data
@@ -56,14 +57,14 @@ function getStravaData(callback){
   .end(function(err, response){ //Finishes request and deals with returned content
     if (err){ //If error, do someting instead of nothing
       callback(err, null);
-      console.log('Something went wrong with getStravaData function')
+      console.log('Something went wrong with getStravaData function');
       return;
     }
       //parses data from the Strava JSON/HTTP response
-      runCount = response.body.all_run_totals.count //drilling down into data
-      runDist = response.body.all_run_totals.distance
+      runCount = response.body.all_run_totals.count; //drilling down into data
+      runDist = response.body.all_run_totals.distance;
 
-      callback(null, runCount, runDist) //Define what data follows through to next async event/funtion
+      callback(null, runCount, runDist); //Define what data follows through to next async event/funtion
   });
 }
 
@@ -74,7 +75,7 @@ function readRuns(runCount, runDist, callback){ //Carry through runCount and run
   fs.readFile('savedRuns.json', 'utf8', function (err, data) { //uses 'file save' to read savedRuns then refers to it as 'data'
     if (err){ //if there is an error, do something instead of nothing
       callback(err, null);
-      console.log('Something went wrong with readRuns function')
+      console.log('Something went wrong with readRuns function');
       return;
     }
     saved = JSON.parse(data); //make saved the parsed JSON data
@@ -88,32 +89,34 @@ function readRuns(runCount, runDist, callback){ //Carry through runCount and run
     //change 'bigger' bool to true, if not keep it the same (false).
     if(runCount > savedRunCount){
       bigger = true;
-      console.log("Bigger is "+bigger) //will display 'bigger is true'
+      console.log("Bigger is "+bigger); //will display 'bigger is true'
     } else {
       bigger = false;
-      console.log("Bigger is "+bigger) //will display 'bigger is false'
+      console.log("Bigger is "+bigger); //will display 'bigger is false'
     }
 
     callback(null, bigger, runCount, runDist, savedRunDist); //Follow on through to the next function. Dropped runCount and added the 'saved' values
+});
 }
 
 //------------------------------------------------
 //Creates a JSON file with Strava data
 //------------------------------------------------
 function saveRuns(bigger, runCount, runDist, savedRunDist, callback){
-  if (bigger == true){ //if 'bigger' was true in the last function do this, if not don't do much.
+  if (bigger === true){ //if 'bigger' was true in the last function do this, if not don't do much.
     //creates JSON file with new Strava data.
     fs.writeFile('savedRuns.json', '{"runs":'+'"'+runCount+'"'+","+'"distance":'+'"'+runDist+'"'+'}', function (err) {
       if (err){ //if error do something instead of getting an annoying error. Handled well, I think.
         callback(err, null);
-        console.log('Something went wrong with saveRuns function')
+        console.log('Something went wrong with saveRuns function');
         return;
       }
       console.log('savedRuns JSON file updated');
-      callback(null, bigger, runDist, savedRunDist)
-    })
+      callback(null, bigger, runDist, savedRunDist);
+    });
   }else {
-    callback(null, bigger, runDist, savedRunDist)
+    callback(null, bigger, runDist, savedRunDist);
+}
 }
 
 //------------------------------------------------
@@ -121,9 +124,9 @@ function saveRuns(bigger, runCount, runDist, savedRunDist, callback){
 if numberOfRuns has increased (bigger bool). */
 //------------------------------------------------
 function postToPhoton(bigger, runDist, savedRunDist, callback){
-  if (bigger == true){ //Post to Particle Photon if 'bigger' is true.
+  if (bigger === true){ //Post to Particle Photon if 'bigger' is true.
     runDistDiff = runDist - savedRunDist; //Finds the difference between the new distance and the old one. This is the most important number.
-    console.log("Distance Difference: "+runDistDiff+" metres") //Puts 'runDistDiff' into the wild.
+    console.log("Distance Difference: "+runDistDiff+" metres"); //Puts 'runDistDiff' into the wild.
     request.post("https://api.particle.io/v1/devices/events")
     .send('name='+eventName) //The name of your event that your Photon will subscribe to.
     .send('private=true') //No peepers
@@ -131,15 +134,15 @@ function postToPhoton(bigger, runDist, savedRunDist, callback){
     .send('access_token='+accessToken) //The access token will aim it at your Particle Photon.
     .end(function(err,res){
       if(err){
-        console.log('error on postToPhoton function')
+        console.log('error on postToPhoton function');
         return;
       }
-      console.log('New Run Found. Run distance difference posted to Photon.')
-  })
+      console.log('New Run Found. Run distance difference posted to Photon.');
+  });
   } else {
-      console.log('No new runs found.')
+      console.log('No new runs found.');
   }
 }
 
 
-app.listen(3000, function(){}) //Opens express on localhost:3000
+app.listen(3000); //Opens express on localhost:3000
